@@ -120,7 +120,7 @@ hue alone. The stacked bar ships a table view for the same reason.
 | **Login** | Three personas with different capabilities |
 | **Dashboard** | KPIs, search / filter / sort, per-component condition strip, progress |
 | **Portfolio** | Cross-property analytics — condition mix, spend by bucket and system, ten-year reserve profile |
-| **Field intake** | Tablet-framed guided walk: type → condition → recommendation → cost line → observations → photos |
+| **Field intake** | Tablet-framed guided walk: type → condition → recommendation → cost line → observations → media |
 | **Flag summary** | Red/yellow roll-up before drafting |
 | **Draft review** | Editable narrative with provenance chips, per-section approval, live expenditure table |
 | **Report** | The ASTM E2018 deliverable — print-ready, exports to Word and CSV |
@@ -128,8 +128,28 @@ hue alone. The stacked bar ships a table view for the same reason.
 
 Beyond the original prototype: portfolio analytics, command palette (`⌘K`), dark
 mode, keyboard-driven intake, search/filter/sort, role-based navigation, CSV
-export, field notes, deterministic photo placeholders, and eight components
-across four report groups instead of five.
+export, field notes, and eight components across four report groups instead of
+five.
+
+### Field media
+
+Inspectors capture three kinds of evidence, all on one record shape
+(`MediaAsset`) and one placement path into the report:
+
+- **Photos** — stills, auto-tagged to the section being walked.
+- **Video clips** — walk-through footage with a runtime badge.
+- **Voice notes** — spoken observations with a mock transcript, generated from
+  the selections already on the record so it stays consistent with what the
+  inspector chose. Real capture would post the audio to a transcription service;
+  nothing around it would change.
+
+Every asset can be re-captioned or deleted, and transcripts are editable —
+correcting speech-to-text, not writing from scratch. Captions flow into the
+report's figure captions; voice notes are surfaced in full to the reviewer and
+*cited* in the report rather than embedded, because a transcript is field
+evidence, not report copy. Placeholders are deterministic: photos and video
+render a seeded abstract scene, audio renders a seeded waveform, so the same
+asset always looks the same.
 
 ### Keyboard
 
@@ -140,7 +160,8 @@ across four report groups instead of five.
 | `G` `D` / `G` `P` | Dashboard / Portfolio |
 | `←` `→` | Previous / next component (intake) |
 | `1`–`4` | Set condition (intake) |
-| `P` / `S` | Capture photo / save and exit |
+| `P` / `V` / `R` | Capture photo · video clip · voice note (intake) |
+| `S` | Save and exit (intake) |
 | `↑` `↓` / `A` | Navigate / approve section (review) |
 
 ---

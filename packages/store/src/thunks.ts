@@ -6,7 +6,7 @@ import {
   duration,
   recRef,
 } from '@sense/core'
-import type { ComponentId, Inspection } from '@sense/core'
+import type { ComponentId, Inspection, MediaKind } from '@sense/core'
 import * as content from './slices/contentSlice'
 import * as connectivity from './slices/connectivitySlice'
 import * as generation from './slices/generationSlice'
@@ -89,7 +89,7 @@ const stepsFor = (insp: Inspection) => {
     }
   })
   steps.push({
-    label: 'Assembling cost tables & placing photos',
+    label: 'Assembling cost tables & placing media',
     ref: 'deterministic — never generated',
     state: 'pending' as const,
   })
@@ -140,8 +140,29 @@ export const generateDraft =
 /* Intake                                                                      */
 /* -------------------------------------------------------------------------- */
 
-export const capturePhoto =
-  (id: string, compId: ComponentId): Thunk =>
+const KIND_NOUN: Record<MediaKind, string> = {
+  photo: 'Photo',
+  video: 'Video clip',
+  audio: 'Voice note',
+}
+
+/**
+ * Mock speech-to-text. A real build would post the audio to a transcription
+ * service; here the sentence is composed from the selections already on the
+ * record, so the transcript stays consistent with what the inspector chose.
+ */
+const mockTranscript = (comp: (typeof COMPONENTS)[number], entry: { obs: string[] }): string => {
+  const observed = entry.obs
+    .map((k) => comp.observations.find((o) => o.key === k)?.label.toLowerCase())
+    .filter(Boolean)
+  const tail = observed.length
+    ? `Noting ${observed.slice(0, 3).join(', ')}.`
+    : 'Nothing significant to flag at this location.'
+  return `Walking the ${comp.label.toLowerCase()} now. ${tail} Will confirm quantities before leaving site.`
+}
+
+export const captureMedia =
+  (id: string, compId: ComponentId, kind: MediaKind): Thunk =>
   (dispatch, getState) => {
     const state = getState()
     const insp = state.inspections.items.find((i) => i.id === id)
@@ -149,12 +170,19 @@ export const capturePhoto =
     if (!insp || !comp) return
     const entry = insp.data[compId]
     // The caption defaults to the most recent observation, which is almost
-    // always what the inspector just photographed.
+    // always what the inspector just captured.
     const lastKey = entry.obs[entry.obs.length - 1]
-    const label = comp.observations.find((o) => o.key === lastKey)?.label ?? 'General view'
+    const observationLabel = comp.observations.find((o) => o.key === lastKey)?.label
+    const label =
+      observationLabel ??
+      (kind === 'audio' ? 'Field observation note' : kind === 'video' ? 'Walk-through pan' : 'General view')
     const offline = selectOffline(state)
-    dispatch(inspections.addPhoto(id, compId, entry.photos.length, label, offline))
-    dispatch(recordChange(`Photo captured — ${compId}`))
+    const transcript = kind === 'audio' ? mockTranscript(comp, entry) : undefined
+
+    dispatch(
+      inspections.addMedia(id, compId, kind, entry.media.length, label, offline, transcript),
+    )
+    dispatch(recordChange(`${KIND_NOUN[kind]} captured — ${comp.secNo} ${comp.label}`))
   }
 
 export const approveReport =

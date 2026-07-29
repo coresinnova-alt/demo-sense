@@ -99,15 +99,30 @@ export interface CostBookEntry {
   eulLabel?: string
 }
 
-export interface Photo {
+export type MediaKind = 'photo' | 'video' | 'audio'
+
+/**
+ * A captured field asset. Inspectors shoot stills, walk-through video and
+ * spoken notes, so all three share one record shape and one placement path
+ * into the report.
+ */
+export interface MediaAsset {
   id: string
+  kind: MediaKind
   name: string
   /** Caption derived from the observation selected when it was captured. */
   label: string
-  /** Deterministic seed for the generated placeholder thumbnail. */
+  /** Deterministic seed for the generated placeholder frame / waveform. */
   seed: number
+  /** Runtime in seconds. Absent for stills. */
+  durationSec?: number
+  /** Speech-to-text of a voice note; editable by the inspector. */
+  transcript?: string
   capturedOffline?: boolean
 }
+
+/** @deprecated Retained so older call sites keep compiling; use MediaAsset. */
+export type Photo = MediaAsset
 
 /** What the inspector recorded in the field for one component. */
 export interface ComponentEntry {
@@ -117,7 +132,7 @@ export interface ComponentEntry {
   rec: RecommendationId | null
   qty: number | null
   obs: string[]
-  photos: Photo[]
+  media: MediaAsset[]
   /** Free-text note the inspector can add on site. */
   note?: string
 }
@@ -238,7 +253,7 @@ export interface ReportSub {
   recText: string
   hasCost: boolean
   costText: string
-  photos: Photo[]
+  media: MediaAsset[]
   figCaption: string
 }
 

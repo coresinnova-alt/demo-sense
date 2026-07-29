@@ -22,6 +22,7 @@ import type {
   DraftComponent,
   FlagSummary,
   Inspection,
+  MediaKind,
   RecommendationId,
   ReportGroup,
   ReportModel,
@@ -163,8 +164,23 @@ export const completionOf = (insp: Inspection) => {
   return { done, total: COMPONENTS.length, pct: Math.round((done / COMPONENTS.length) * 100) }
 }
 
-export const photoCount = (insp: Inspection) =>
-  COMPONENTS.reduce((n, c) => n + (insp.data[c.id]?.photos.length ?? 0), 0)
+export const mediaCount = (insp: Inspection, kind?: MediaKind) =>
+  COMPONENTS.reduce((n, c) => {
+    const items = insp.data[c.id]?.media ?? []
+    return n + (kind ? items.filter((m) => m.kind === kind).length : items.length)
+  }, 0)
+
+/** "12 photos, 3 clips, 2 voice notes" — omits whatever was not captured. */
+export const mediaSummary = (insp: Inspection): string => {
+  const parts: string[] = []
+  const photos = mediaCount(insp, 'photo')
+  const videos = mediaCount(insp, 'video')
+  const audio = mediaCount(insp, 'audio')
+  if (photos) parts.push(`${photos} ${pluralize(photos, 'photo')}`)
+  if (videos) parts.push(`${videos} ${pluralize(videos, 'clip')}`)
+  if (audio) parts.push(`${audio} voice ${pluralize(audio, 'note')}`)
+  return parts.length ? parts.join(', ') : 'no media captured'
+}
 
 /* -------------------------------------------------------------------------- */
 /* Draft assembly                                                              */
@@ -394,7 +410,7 @@ export const buildReportModel = (ov: ContentOverrides, insp: Inspection): Report
         recText: dc.rec,
         hasCost: !!line,
         costText: line ? `${money(line.line)}   (${basis(line)})` : '',
-        photos: entry.photos,
+        media: entry.media,
         figCaption:
           insp.figCaptions?.[comp.id] ?? `${comp.label} — representative condition photographs`,
       })

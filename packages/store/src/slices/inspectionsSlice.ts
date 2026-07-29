@@ -10,7 +10,8 @@ import type {
   DraftField,
   Inspection,
   InspectionStatus,
-  Photo,
+  MediaAsset,
+  MediaKind,
   PropertyMeta,
   RecommendationId,
 } from '@sense/core'
@@ -52,7 +53,7 @@ const blankEntry = (): ComponentEntry => ({
   rec: null,
   qty: null,
   obs: [],
-  photos: [],
+  media: [],
 })
 
 const inspectionsSlice = createSlice({
@@ -194,30 +195,62 @@ const inspectionsSlice = createSlice({
       touch(insp, action.payload.compId)
     },
 
-    addPhoto: {
-      reducer(state, action: PayloadAction<{ id: string; compId: ComponentId; photo: Photo }>) {
+    addMedia: {
+      reducer(state, action: PayloadAction<{ id: string; compId: ComponentId; asset: MediaAsset }>) {
         const insp = find(state, action.payload.id)
         if (!insp) return
-        insp.data[action.payload.compId].photos.push(action.payload.photo)
+        insp.data[action.payload.compId].media.push(action.payload.asset)
         touch(insp, action.payload.compId)
       },
-      prepare(id: string, compId: ComponentId, index: number, label: string, offline: boolean) {
-        const photo: Photo = {
+      prepare(
+        id: string,
+        compId: ComponentId,
+        kind: MediaKind,
+        index: number,
+        label: string,
+        offline: boolean,
+        transcript?: string,
+      ) {
+        const ext = kind === 'photo' ? 'jpg' : kind === 'video' ? 'mp4' : 'm4a'
+        const asset: MediaAsset = {
           id: nanoid(8),
-          name: `${compId}_${String(index + 1).padStart(2, '0')}.jpg`,
+          kind,
+          name: `${compId}_${String(index + 1).padStart(2, '0')}.${ext}`,
           label,
           seed: Math.floor(Math.random() * 100000),
           capturedOffline: offline,
+          // Stills have no runtime; clips and voice notes get a plausible one.
+          ...(kind === 'video' ? { durationSec: 8 + Math.floor(Math.random() * 40) } : {}),
+          ...(kind === 'audio'
+            ? { durationSec: 6 + Math.floor(Math.random() * 30), transcript }
+            : {}),
         }
-        return { payload: { id, compId, photo } }
+        return { payload: { id, compId, asset } }
       },
     },
 
-    removePhoto(state, action: PayloadAction<{ id: string; compId: ComponentId; photoId: string }>) {
+    updateMedia(
+      state,
+      action: PayloadAction<{
+        id: string
+        compId: ComponentId
+        assetId: string
+        patch: Partial<Pick<MediaAsset, 'label' | 'transcript'>>
+      }>,
+    ) {
+      const insp = find(state, action.payload.id)
+      if (!insp) return
+      const asset = insp.data[action.payload.compId].media.find((m) => m.id === action.payload.assetId)
+      if (!asset) return
+      Object.assign(asset, action.payload.patch)
+      touch(insp, action.payload.compId)
+    },
+
+    removeMedia(state, action: PayloadAction<{ id: string; compId: ComponentId; assetId: string }>) {
       const insp = find(state, action.payload.id)
       if (!insp) return
       const entry = insp.data[action.payload.compId]
-      entry.photos = entry.photos.filter((p) => p.id !== action.payload.photoId)
+      entry.media = entry.media.filter((m) => m.id !== action.payload.assetId)
       touch(insp, action.payload.compId)
     },
 
@@ -305,8 +338,9 @@ export const {
   setQuantity,
   setNote,
   toggleObservation,
-  addPhoto,
-  removePhoto,
+  addMedia,
+  updateMedia,
+  removeMedia,
   setDraft,
   editDraftField,
   toggleSectionApproval,

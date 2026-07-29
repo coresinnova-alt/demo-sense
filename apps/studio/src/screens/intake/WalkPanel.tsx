@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  capturePhoto,
+  captureMedia,
   inspectionActions,
   logAudit,
   recordChange,
@@ -19,13 +20,14 @@ import {
   completionOf,
   computeCostLine,
   costEntry,
+  mediaSummary,
   money,
   needsCost,
-  photoCount,
   rate,
 } from '@sense/core'
 import type { ConditionId, Inspection } from '@sense/core'
-import { Badge, Button, Chip, Input, PhotoThumb, ProgressBar, Textarea, cn } from '@sense/ui'
+import { Badge, Button, Chip, Input, MediaThumb, ProgressBar, Textarea, cn } from '@sense/ui'
+import { MediaEditor } from './MediaEditor'
 import { CONDITION_COLOR, CONDITION_TINT } from '../../lib/conditionStyle'
 import { useHotkeys } from '../../lib/useHotkeys'
 
@@ -35,6 +37,7 @@ export const WalkPanel = ({ inspection }: { inspection: Inspection }) => {
   const overrides = useAppSelector(selectOverrides)
   const offline = useAppSelector(selectOffline)
   const compIdx = useAppSelector((s) => s.inspections.compIdx)
+  const [editing, setEditing] = useState<string | null>(null)
 
   const comp = COMPONENTS[Math.min(compIdx, COMPONENTS.length - 1)]
   const entry = inspection.data[comp.id]
@@ -75,7 +78,7 @@ export const WalkPanel = ({ inspection }: { inspection: Inspection }) => {
     dispatch(
       logAudit(
         'Intake completed',
-        `${inspection.proj} · ${COMPONENTS.length} components, ${photoCount(inspection)} photos`,
+        `${inspection.proj} · ${COMPONENTS.length} components, ${mediaSummary(inspection)}`,
       ),
     )
     dispatch(recordChange(`Intake completed — ${inspection.property.name}`))
@@ -99,7 +102,9 @@ export const WalkPanel = ({ inspection }: { inspection: Inspection }) => {
     '2': () => setCondition('fair'),
     '3': () => setCondition('poor'),
     '4': () => setCondition('failed'),
-    p: () => dispatch(capturePhoto(id, comp.id)),
+    p: () => dispatch(captureMedia(id, comp.id, 'photo')),
+    v: () => dispatch(captureMedia(id, comp.id, 'video')),
+    r: () => dispatch(captureMedia(id, comp.id, 'audio')),
     s: () => saveExit(),
   })
 
@@ -341,9 +346,9 @@ export const WalkPanel = ({ inspection }: { inspection: Inspection }) => {
 
         <aside className="flex min-h-0 min-w-0 flex-col rounded-xl border border-line bg-card p-3.5">
           <div className="mb-1 flex items-center gap-2">
-            <h4 className="text-[12.5px] font-bold text-ink">Photos</h4>
+            <h4 className="text-[12.5px] font-bold text-ink">Media</h4>
             <span className="rounded bg-inset px-1.5 py-0.5 font-mono text-[10px] text-ink-3">
-              {entry.photos.length}
+              {entry.media.length}
             </span>
           </div>
           <p className="mb-3 text-[10.5px] text-ink-3">
@@ -353,29 +358,69 @@ export const WalkPanel = ({ inspection }: { inspection: Inspection }) => {
           </p>
 
           <div className="grid min-h-0 flex-1 auto-rows-min grid-cols-2 gap-2 overflow-y-auto">
-            {entry.photos.map((ph) => (
-              <PhotoThumb
-                key={ph.id}
-                name={ph.name}
-                label={ph.label}
-                seed={ph.seed}
+            {entry.media.length === 0 ? (
+              <p className="col-span-2 py-6 text-center text-[11px] text-ink-3">
+                No media captured yet.
+              </p>
+            ) : null}
+            {entry.media.map((asset) => (
+              <MediaThumb
+                key={asset.id}
+                kind={asset.kind}
+                name={asset.name}
+                label={asset.label}
+                seed={asset.seed}
+                durationSec={asset.durationSec}
+                transcript={asset.transcript}
                 size="sm"
-                offline={ph.capturedOffline}
+                offline={asset.capturedOffline}
+                onEdit={() => setEditing(asset.id)}
                 onRemove={() =>
-                  dispatch(inspectionActions.removePhoto({ id, compId: comp.id, photoId: ph.id }))
+                  dispatch(
+                    inspectionActions.removeMedia({ id, compId: comp.id, assetId: asset.id }),
+                  )
                 }
               />
             ))}
           </div>
 
-          <Button
-            variant="outline"
-            fullWidth
-            className="mt-3 min-h-12 border-dashed"
-            onClick={() => dispatch(capturePhoto(id, comp.id))}
-          >
-            + Capture photo
-          </Button>
+          {/* Three capture modes: still, walk-through clip, spoken note. */}
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <CaptureButton
+              label="Photo"
+              hint="Capture a still (P)"
+              onClick={() => dispatch(captureMedia(id, comp.id, 'photo'))}
+              icon={
+                <>
+                  <rect x="2" y="4.5" width="12" height="8.5" rx="2" />
+                  <circle cx="8" cy="8.75" r="2.4" />
+                  <path d="M6 4.5l1-1.5h2l1 1.5" />
+                </>
+              }
+            />
+            <CaptureButton
+              label="Video"
+              hint="Record a walk-through clip (V)"
+              onClick={() => dispatch(captureMedia(id, comp.id, 'video'))}
+              icon={
+                <>
+                  <rect x="1.8" y="4.5" width="9" height="8" rx="2" />
+                  <path d="M10.8 8.5l3.4-2.2v6l-3.4-2.2z" />
+                </>
+              }
+            />
+            <CaptureButton
+              label="Voice"
+              hint="Record a spoken note, auto-transcribed (R)"
+              onClick={() => dispatch(captureMedia(id, comp.id, 'audio'))}
+              icon={
+                <>
+                  <rect x="6" y="1.8" width="4" height="7.5" rx="2" />
+                  <path d="M3.5 7.5a4.5 4.5 0 009 0M8 12v2.2" />
+                </>
+              }
+            />
+          </div>
         </aside>
       </div>
 
@@ -400,9 +445,49 @@ export const WalkPanel = ({ inspection }: { inspection: Inspection }) => {
           {isLast ? 'Finish inspection ✓' : `Next: ${COMPONENTS[compIdx + 1].label} →`}
         </Button>
       </div>
+
+      <MediaEditor
+        inspectionId={id}
+        compId={comp.id}
+        asset={entry.media.find((m) => m.id === editing) ?? null}
+        onClose={() => setEditing(null)}
+      />
     </div>
   )
 }
+
+const CaptureButton = ({
+  label,
+  hint,
+  icon,
+  onClick,
+}: {
+  label: string
+  hint: string
+  icon: React.ReactNode
+  onClick: () => void
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    title={hint}
+    aria-label={hint}
+    className="flex min-h-14 cursor-pointer flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-brand-300 bg-brand-50 text-brand-800 transition-colors hover:bg-brand-100 dark:border-brand-700 dark:bg-brand-950 dark:text-brand-200 dark:hover:bg-brand-900"
+  >
+    <svg
+      viewBox="0 0 16 16"
+      className="size-4"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinejoin="round"
+      strokeLinecap="round"
+    >
+      {icon}
+    </svg>
+    <span className="text-[11px] font-bold">{label}</span>
+  </button>
+)
 
 const SectionLabel = ({
   label,

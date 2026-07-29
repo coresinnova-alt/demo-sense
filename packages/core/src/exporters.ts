@@ -72,9 +72,9 @@ export const toWordHtml = (insp: Inspection, m: ReportModel): string => {
       )
       out.push(`<p><b>Recommendation:</b> ${esc(sb.recText)}</p>`)
       if (sb.hasCost) out.push(`<p><b>Opinion of Probable Cost:</b> ${esc(sb.costText)}</p>`)
-      if (sb.photos.length) {
+      if (sb.media.length) {
         out.push(
-          `<p style="font-size:9.5pt;color:#555"><i>Figures: ${sb.photos
+          `<p style="font-size:9.5pt;color:#555"><i>Figures: ${sb.media
             .map((ph) => esc(ph.name))
             .join(', ')} — ${esc(sb.figCaption)}</i></p>`,
         )

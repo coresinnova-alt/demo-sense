@@ -30,7 +30,7 @@ import {
   recRef,
 } from '@sense/core'
 import type { ComponentId, DraftField } from '@sense/core'
-import { Badge, Button, Card, CardHeader, PhotoThumb, Textarea, cn } from '@sense/ui'
+import { Badge, Button, Card, CardHeader, MediaThumb, Textarea, cn } from '@sense/ui'
 import { BUCKET_TONE, CONDITION_TONE } from '../lib/conditionStyle'
 import { useActiveInspection } from '../lib/useActiveInspection'
 import { useHotkeys } from '../lib/useHotkeys'
@@ -305,30 +305,57 @@ export const ReviewScreen = () => {
 
             <div className="border-t border-line px-5 py-4">
               <div className="mb-2.5 flex items-center gap-2">
-                <span className="text-[11.5px] font-bold text-ink-2">Photos</span>
+                <span className="text-[11.5px] font-bold text-ink-2">Field media</span>
                 <span className="rounded bg-inset px-1.5 py-0.5 font-mono text-[10px] text-ink-3">
-                  {entry.photos.length}
+                  {entry.media.length}
                 </span>
                 <span className="text-[10.5px] text-ink-3">
                   auto-placed in this section at capture
                 </span>
               </div>
-              {entry.photos.length ? (
+              {entry.media.length ? (
                 <div className="flex flex-wrap gap-2.5">
-                  {entry.photos.map((ph) => (
-                    <PhotoThumb
-                      key={ph.id}
-                      name={ph.name}
-                      label={ph.label}
-                      seed={ph.seed}
-                      offline={ph.capturedOffline}
+                  {entry.media.map((asset) => (
+                    <MediaThumb
+                      key={asset.id}
+                      kind={asset.kind}
+                      name={asset.name}
+                      label={asset.label}
+                      seed={asset.seed}
+                      durationSec={asset.durationSec}
+                      transcript={asset.transcript}
+                      offline={asset.capturedOffline}
                       className="w-36"
                     />
                   ))}
                 </div>
               ) : (
-                <p className="text-[12px] text-ink-3">No photos captured for this section.</p>
+                <p className="text-[12px] text-ink-3">No media captured for this section.</p>
               )}
+
+              {/* Voice notes are reference material for the reviewer, not report
+                  copy — surfaced in full so nothing said on site is lost. */}
+              {entry.media.some((m) => m.kind === 'audio') ? (
+                <div className="mt-3 rounded-xl border border-line bg-subtle p-3.5">
+                  <p className="mb-2 font-mono text-[9.5px] font-semibold tracking-[0.08em] text-ink-3 uppercase">
+                    Voice note transcripts
+                  </p>
+                  <ul className="flex flex-col gap-2">
+                    {entry.media
+                      .filter((m) => m.kind === 'audio')
+                      .map((m) => (
+                        <li key={m.id}>
+                          <p className="font-mono text-[10px] text-ink-3">
+                            {m.name} · {m.label}
+                          </p>
+                          <p className="text-[12px] leading-relaxed text-ink-2 italic">
+                            “{m.transcript}”
+                          </p>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              ) : null}
             </div>
           </Card>
 

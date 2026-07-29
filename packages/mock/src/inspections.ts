@@ -1,5 +1,5 @@
 import { COMPONENTS } from '@sense/core'
-import type { ComponentEntry, ComponentId, Inspection, Photo } from '@sense/core'
+import type { ComponentEntry, ComponentId, Inspection, MediaAsset, MediaKind } from '@sense/core'
 
 /* Fixtures are written relative to "today" so the demo never looks stale. */
 const day = 86_400_000
@@ -12,14 +12,29 @@ const longDate = (daysAgo: number) =>
     year: 'numeric',
   })
 
-let photoSeq = 0
-const photo = (name: string, label: string, capturedOffline = false): Photo => ({
-  id: `ph-${++photoSeq}`,
+let mediaSeq = 0
+const asset = (
+  kind: MediaKind,
+  name: string,
+  label: string,
+  extra: Partial<MediaAsset> = {},
+): MediaAsset => ({
+  id: `md-${++mediaSeq}`,
+  kind,
   name,
   label,
-  seed: (photoSeq * 2654435761) % 100000,
-  capturedOffline,
+  seed: (mediaSeq * 2654435761) % 100000,
+  ...extra,
 })
+
+const photo = (name: string, label: string, capturedOffline = false) =>
+  asset('photo', name, label, { capturedOffline })
+
+const video = (name: string, label: string, durationSec: number, capturedOffline = false) =>
+  asset('video', name, label, { durationSec, capturedOffline })
+
+const voice = (name: string, label: string, durationSec: number, transcript: string) =>
+  asset('audio', name, label, { durationSec, transcript })
 
 const blankEntry = (): ComponentEntry => ({
   done: false,
@@ -28,7 +43,7 @@ const blankEntry = (): ComponentEntry => ({
   rec: null,
   qty: null,
   obs: [],
-  photos: [],
+  media: [],
 })
 
 /** Every inspection carries an entry for every component, complete or not. */
@@ -78,10 +93,17 @@ const bayview: Inspection = {
       rec: 'replace-now',
       qty: 11500,
       obs: ['ponding', 'delam', 'pillow', 'ridge'],
-      photos: [
+      media: [
         photo('roof_01.jpg', 'Roof field — ponding', true),
         photo('roof_02.jpg', 'Foam delamination', true),
         photo('roof_03.jpg', 'Pillowing at membrane', true),
+        video('roof_04.mp4', 'Roof field walk-through, north to south', 42, true),
+        voice(
+          'roof_05.m4a',
+          'Inspector note — membrane condition',
+          31,
+          'Walking the roof field now. Ponding across most of the north half, foam coating has delaminated in at least four places, and there is clear pillowing near the drains. This membrane is past its life — recommending full replacement, not a recoat.',
+        ),
       ],
     },
     paint: {
@@ -90,7 +112,7 @@ const bayview: Inspection = {
       rec: 'repair',
       qty: 18000,
       obs: ['fade', 'sealant', 'crack'],
-      photos: [
+      media: [
         photo('paint_01.jpg', 'South elevation fading', true),
         photo('paint_02.jpg', 'Cracked perimeter sealant'),
       ],
@@ -100,14 +122,14 @@ const bayview: Inspection = {
       cond: 'good',
       rec: 'routine',
       obs: ['gasket', 'none'],
-      photos: [photo('win_01.jpg', 'Representative window ribbon')],
+      media: [photo('win_01.jpg', 'Representative window ribbon')],
     },
     doors: {
       type: 'Aluminum / glass entry',
       cond: 'good',
       rec: 'routine',
       obs: ['finish', 'closers', 'frames'],
-      photos: [photo('door_01.jpg', 'Main storefront entrance')],
+      media: [photo('door_01.jpg', 'Main storefront entrance')],
     },
     hvac: {
       type: 'Packaged rooftop unit (RTU)',
@@ -115,21 +137,29 @@ const bayview: Inspection = {
       rec: 'repair',
       qty: 2,
       obs: ['eol', 'corr', 'ok'],
-      photos: [photo('hvac_01.jpg', 'RTU cabinet corrosion')],
+      media: [
+        photo('hvac_01.jpg', 'RTU cabinet corrosion'),
+        voice(
+          'hvac_02.m4a',
+          'Inspector note — unit ages',
+          18,
+          'Two of the original packaged units are still up here, both showing cabinet corrosion at the seams. The rest were replaced between 2019 and 2021 and look fine.',
+        ),
+      ],
     },
     plumbing: {
       type: 'Copper supply',
       cond: 'good',
       rec: 'routine',
       obs: ['fixtures', 'ok'],
-      photos: [photo('plumb_01.jpg', 'Water heater room')],
+      media: [photo('plumb_01.jpg', 'Water heater room')],
     },
     electrical: {
       type: 'Panelboards',
       cond: 'fair',
       rec: 'monitor',
       obs: ['labeling', 'capacity'],
-      photos: [photo('elec_01.jpg', 'Main distribution panel')],
+      media: [photo('elec_01.jpg', 'Main distribution panel')],
     },
     pavement: {
       type: 'Asphalt',
@@ -137,9 +167,10 @@ const bayview: Inspection = {
       rec: 'repair-now',
       qty: 2400,
       obs: ['alligator', 'striping', 'curb'],
-      photos: [
+      media: [
         photo('pave_01.jpg', 'Alligator cracking, east aisle'),
         photo('pave_02.jpg', 'Faded accessible-stall striping'),
+        video('pave_03.mp4', 'Drive aisle pan showing cracking extent', 26),
       ],
     },
   }),
@@ -284,7 +315,7 @@ const coralGables: Inspection = {
       cond: 'fair',
       rec: 'monitor',
       obs: ['drains'],
-      photos: [photo('roof_01.jpg', 'TPO field at drains'), photo('roof_02.jpg', 'Roof overview')],
+      media: [photo('roof_01.jpg', 'TPO field at drains'), photo('roof_02.jpg', 'Roof overview')],
     },
     paint: {
       type: 'Stucco coating',
@@ -292,21 +323,21 @@ const coralGables: Inspection = {
       rec: 'repair',
       qty: 9500,
       obs: ['crack', 'sealant'],
-      photos: [photo('paint_01.jpg', 'Hairline cracking, west')],
+      media: [photo('paint_01.jpg', 'Hairline cracking, west')],
     },
     windows: {
       type: 'Storefront / curtain wall',
       cond: 'fair',
       rec: 'monitor',
       obs: ['hardware'],
-      photos: [photo('win_01.jpg', 'Storefront glazing')],
+      media: [photo('win_01.jpg', 'Storefront glazing')],
     },
     doors: {
       type: 'Hollow metal',
       cond: 'good',
       rec: 'routine',
       obs: ['finish', 'frames'],
-      photos: [photo('door_01.jpg', 'Service corridor doors')],
+      media: [photo('door_01.jpg', 'Service corridor doors')],
     },
     hvac: {
       type: 'Split system',
@@ -314,9 +345,16 @@ const coralGables: Inspection = {
       rec: 'replace-5',
       qty: 4,
       obs: ['eol', 'refr'],
-      photos: [
+      media: [
         photo('hvac_01.jpg', 'Condensing units, roof'),
         photo('hvac_02.jpg', 'Nameplate detail'),
+        video('hvac_03.mp4', 'Condensing unit bank, roof level', 19),
+        voice(
+          'hvac_04.m4a',
+          'Inspector note — refrigerant leaks',
+          24,
+          'Management reports recurring refrigerant leaks on the split systems. Four units are at end of life. Recommending replacement within five years, carried to the capital plan.',
+        ),
       ],
     },
     plumbing: {
@@ -325,7 +363,7 @@ const coralGables: Inspection = {
       rec: 'repair',
       qty: 3,
       obs: ['heater', 'pressure'],
-      photos: [photo('plumb_01.jpg', 'Water heaters at end of life')],
+      media: [photo('plumb_01.jpg', 'Water heaters at end of life')],
     },
     electrical: {
       type: 'Main switchgear',
@@ -333,14 +371,14 @@ const coralGables: Inspection = {
       rec: 'plan-5-10',
       qty: 1,
       obs: ['obsolete', 'labeling'],
-      photos: [photo('elec_01.jpg', 'Main switchgear section')],
+      media: [photo('elec_01.jpg', 'Main switchgear section')],
     },
     pavement: {
       type: 'Concrete',
       cond: 'good',
       rec: 'routine',
       obs: ['ok'],
-      photos: [photo('pave_01.jpg', 'Parking field overview')],
+      media: [photo('pave_01.jpg', 'Parking field overview')],
     },
   }),
   draft: null,
@@ -373,7 +411,10 @@ const wynwood: Inspection = {
       cond: 'fair',
       rec: 'monitor',
       obs: ['drains'],
-      photos: [photo('roof_01.jpg', 'TPO field', true)],
+      media: [
+        photo('roof_01.jpg', 'TPO field', true),
+        video('roof_02.mp4', 'TPO field sweep', 33, true),
+      ],
     },
     paint: {
       type: 'Latex',
@@ -381,14 +422,14 @@ const wynwood: Inspection = {
       rec: 'repair',
       qty: 6400,
       obs: ['fade'],
-      photos: [photo('paint_01.jpg', 'North elevation fading', true)],
+      media: [photo('paint_01.jpg', 'North elevation fading', true)],
     },
     windows: {
       type: 'Impact-rated',
       cond: 'good',
       rec: 'none',
       obs: ['none'],
-      photos: [photo('win_01.jpg', 'Typical window bay', true)],
+      media: [photo('win_01.jpg', 'Typical window bay', true)],
     },
   }),
   draft: null,
@@ -447,7 +488,17 @@ const doralLogistics: Inspection = {
       rec: 'replace-now',
       qty: 96400,
       obs: ['seams', 'ponding', 'drains'],
-      photos: [photo('roof_01.jpg', 'Open seams at penetrations'), photo('roof_02.jpg', 'Standing water')],
+      media: [
+        photo('roof_01.jpg', 'Open seams at penetrations'),
+        photo('roof_02.jpg', 'Standing water'),
+        video('roof_03.mp4', 'Full roof walk, seam failures', 58),
+        voice(
+          'roof_04.m4a',
+          'Inspector note — end of life',
+          22,
+          'Seams are open at nearly every penetration and there is standing water two days after rain. This roof has failed. Immediate replacement across the full ninety-six thousand square feet.',
+        ),
+      ],
     },
     paint: {
       type: 'Sealant / waterproofing',
@@ -455,14 +506,14 @@ const doralLogistics: Inspection = {
       rec: 'repair-now',
       qty: 21000,
       obs: ['sealant', 'efflor', 'rust'],
-      photos: [photo('paint_01.jpg', 'Failed panel joint sealant')],
+      media: [photo('paint_01.jpg', 'Failed panel joint sealant')],
     },
     windows: {
       type: 'Fixed',
       cond: 'good',
       rec: 'routine',
       obs: ['none'],
-      photos: [photo('win_01.jpg', 'Office storefront')],
+      media: [photo('win_01.jpg', 'Office storefront')],
     },
     doors: {
       type: 'Overhead / roll-up',
@@ -470,7 +521,7 @@ const doralLogistics: Inspection = {
       rec: 'repair',
       qty: 14,
       obs: ['hw', 'align'],
-      photos: [photo('door_01.jpg', 'Dock door binding')],
+      media: [photo('door_01.jpg', 'Dock door binding')],
     },
     hvac: {
       type: 'Mini-split',
@@ -478,7 +529,7 @@ const doralLogistics: Inspection = {
       rec: 'plan-5-10',
       qty: 8,
       obs: ['air', 'ok'],
-      photos: [photo('hvac_01.jpg', 'Office mini-split heads')],
+      media: [photo('hvac_01.jpg', 'Office mini-split heads')],
     },
     plumbing: {
       type: 'Galvanized supply',
@@ -486,14 +537,14 @@ const doralLogistics: Inspection = {
       rec: 'replace-5',
       qty: 2,
       obs: ['corrosion', 'pressure'],
-      photos: [photo('plumb_01.jpg', 'Corroded galvanized riser')],
+      media: [photo('plumb_01.jpg', 'Corroded galvanized riser')],
     },
     electrical: {
       type: 'Bus duct',
       cond: 'fair',
       rec: 'monitor',
       obs: ['labeling', 'clearance'],
-      photos: [photo('elec_01.jpg', 'Bus duct riser')],
+      media: [photo('elec_01.jpg', 'Bus duct riser')],
     },
     pavement: {
       type: 'Asphalt',
@@ -501,7 +552,7 @@ const doralLogistics: Inspection = {
       rec: 'replace-5',
       qty: 9800,
       obs: ['potholes', 'alligator', 'ponding'],
-      photos: [photo('pave_01.jpg', 'Truck court pavement failure')],
+      media: [photo('pave_01.jpg', 'Truck court pavement failure')],
     },
   }),
   draft: null,

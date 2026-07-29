@@ -7,7 +7,7 @@ import {
   useAppDispatch,
   useAppSelector,
 } from '@sense/store'
-import { COMPONENTS, computeCostLine, money, photoCount } from '@sense/core'
+import { COMPONENTS, computeCostLine, mediaSummary, money } from '@sense/core'
 import { Button, cn } from '@sense/ui'
 import { useActiveInspection } from '../lib/useActiveInspection'
 import { DeviceFrame } from './intake/DeviceFrame'
@@ -43,7 +43,7 @@ export const FlagsScreen = () => {
             <span className="font-mono text-[11.5px]">{inspection.proj}</span>
           </p>
           <p className="tnum mt-2 mb-5 font-mono text-[11px] text-ink-3">
-            {COMPONENTS.length} components · {photoCount(inspection)} photos · {lines.length} cost{' '}
+            {COMPONENTS.length} components · {mediaSummary(inspection)} · {lines.length} cost{' '}
             {lines.length === 1 ? 'line' : 'lines'} · {money(total)} identified
           </p>
 

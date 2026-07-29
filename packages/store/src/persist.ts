@@ -3,7 +3,7 @@ import type { AuditEntry, Inspection, User } from '@sense/core'
 import type { QueuedChange } from './slices/connectivitySlice'
 import type { ThemeMode } from './slices/uiSlice'
 
-export const STORAGE_KEY = 'senseReportStudio.v2'
+export const STORAGE_KEY = 'senseReportStudio.v3'
 
 /**
  * The subset of state that survives a reload. Transient things — toasts, the

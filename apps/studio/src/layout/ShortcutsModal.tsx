@@ -17,6 +17,8 @@ const GROUPS: { title: string; items: [string, string][] }[] = [
       ['← / →', 'Previous / next component'],
       ['1 – 4', 'Set condition: Good, Fair, Poor, Failed'],
       ['P', 'Capture a photo'],
+      ['V', 'Record a video clip'],
+      ['R', 'Record a voice note'],
       ['S', 'Save and exit'],
     ],
   },
