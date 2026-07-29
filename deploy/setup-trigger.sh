@@ -12,7 +12,7 @@ set -euo pipefail
 
 PROJECT_ID="${PROJECT_ID:-portal-503823}"
 REGION="${REGION:-us-central1}"
-SERVICE="${SERVICE:-sense-report-studio}"
+SERVICE="${SERVICE:-demo-sense}"
 REPO="${REPO:-apps}"
 GITHUB_OWNER="${GITHUB_OWNER:-coresinnova-alt}"
 GITHUB_REPO="${GITHUB_REPO:-demo-sense}"

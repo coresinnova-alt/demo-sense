@@ -6,7 +6,7 @@
 #   gcloud builds submit --config cloudbuild.yaml --project portal-503823
 
 substitutions:
-  _SERVICE: sense-report-studio
+  _SERVICE: demo-sense
   _REGION: us-central1
   _REPO: apps
   # Overridden per-trigger; the fallback keeps manual `builds submit` working
@@ -62,14 +62,18 @@ steps:
       - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:${_TAG}
       - --region=${_REGION}
       - --platform=managed
-      # Public demo. Drop this flag (and add an IAP/LB in front) to lock it down.
-      - --allow-unauthenticated
+      # Public access is NOT set here. The org enforces
+      # constraints/iam.allowedPolicyMemberDomains, which rejects an `allUsers`
+      # binding, so --allow-unauthenticated would be silently dropped. The
+      # service is instead public via run.googleapis.com/invoker-iam-disabled,
+      # set once at creation; `gcloud run deploy` preserves it.
       - --port=8080
+      # nginx serving a static bundle needs very little; 512Mi is ample and
+      # one instance absorbs a lot of concurrent requests.
       - --cpu=1
       - --memory=512Mi
       - --min-instances=0
-      - --max-instances=4
-      # Static assets are cheap to serve; one instance handles plenty at once.
+      - --max-instances=10
       - --concurrency=200
       - --timeout=60s
       # No --revision-suffix: Cloud Run rejects a reused suffix, which would
