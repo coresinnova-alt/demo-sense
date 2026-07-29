@@ -147,7 +147,9 @@ across four report groups instead of five.
 
 ## Deployment — Cloud Run on GCP
 
-Project `portal-503823`, region `us-central1`, service `sense-report-studio`.
+Project `portal-503823`, region `us-central1`, service `demo-sense`.
+
+**Live:** <https://demo-sense-ktoaf4fzqa-uc.a.run.app>
 
 A multi-stage `Dockerfile` builds the bundle on `node:22-alpine` (failing the
 build on a type error) and serves it from `nginx:1.27-alpine` — a 76 MB image.
@@ -177,10 +179,14 @@ out a new Cloud Run revision.
 ### Access note
 
 The organisation enforces `constraints/iam.allowedPolicyMemberDomains`, which
-rejects `allUsers`. `--allow-unauthenticated` is therefore silently dropped and
-the service returns **403** to anonymous requests. To make it publicly reachable,
-add a project-level exception for that constraint; otherwise front it with an
-HTTPS load balancer and IAP for organisation-only browser access.
+rejects an `allUsers` IAM binding — so `--allow-unauthenticated` is silently
+dropped and is deliberately **not** used in `cloudbuild.yaml`.
+
+The service is public through `run.googleapis.com/invoker-iam-disabled=true`
+instead, which bypasses the IAM invoker check rather than granting `allUsers`.
+It is set once on the service and preserved across deploys. Access is therefore
+governed by that annotation, not by the service IAM policy — which is why
+`get-iam-policy` shows no bindings on a publicly reachable service.
 
 ---
 
