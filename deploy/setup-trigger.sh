@@ -22,25 +22,39 @@ TRIGGER_NAME="${TRIGGER_NAME:-sense-report-studio-main}"
 say() { printf '\n\033[1m▸ %s\033[0m\n' "$1"; }
 
 say "Checking for an existing trigger"
-if gcloud builds triggers describe "${TRIGGER_NAME}" \
-     --region="${REGION}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
-  echo "Trigger '${TRIGGER_NAME}' already exists — nothing to do."
-  exit 0
-fi
+for LOC in "${REGION}" global; do
+  if gcloud builds triggers describe "${TRIGGER_NAME}" \
+       --region="${LOC}" --project "${PROJECT_ID}" >/dev/null 2>&1; then
+    echo "Trigger '${TRIGGER_NAME}' already exists in ${LOC} — nothing to do."
+    exit 0
+  fi
+done
 
+# A 1st-gen GitHub App connection registers the repo globally, while a 2nd-gen
+# connection is regional. Which one the console created is not knowable up
+# front, so both locations are attempted.
 say "Creating push-to-${BRANCH} trigger for ${GITHUB_OWNER}/${GITHUB_REPO}"
-if gcloud builds triggers create github \
-  --name="${TRIGGER_NAME}" \
-  --region="${REGION}" \
-  --project="${PROJECT_ID}" \
-  --repo-owner="${GITHUB_OWNER}" \
-  --repo-name="${GITHUB_REPO}" \
-  --branch-pattern="${BRANCH}" \
-  --build-config="cloudbuild.yaml" \
-  --substitutions="_SERVICE=${SERVICE},_REGION=${REGION},_REPO=${REPO},_TAG=\$SHORT_SHA" \
-  --description="Build and deploy Sense Report Studio to Cloud Run on push to main"
-then
-  say "Trigger created"
+CREATED=""
+for LOC in "${REGION}" global; do
+  echo "  trying location: ${LOC}"
+  if gcloud builds triggers create github \
+    --name="${TRIGGER_NAME}" \
+    --region="${LOC}" \
+    --project="${PROJECT_ID}" \
+    --repo-owner="${GITHUB_OWNER}" \
+    --repo-name="${GITHUB_REPO}" \
+    --branch-pattern="${BRANCH}" \
+    --build-config="cloudbuild.yaml" \
+    --substitutions="_SERVICE=${SERVICE},_REGION=${REGION},_REPO=${REPO},_TAG=\$SHORT_SHA" \
+    --description="Build and deploy Sense Report Studio to Cloud Run on push to main" 2>/dev/null
+  then
+    CREATED="${LOC}"
+    break
+  fi
+done
+
+if [[ -n "${CREATED}" ]]; then
+  say "Trigger created in ${CREATED}"
   echo "Every push to main now builds and deploys automatically."
 else
   cat <<EOF
