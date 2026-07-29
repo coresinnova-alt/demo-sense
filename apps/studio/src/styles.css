@@ -1,0 +1,4 @@
+/* The shared theme package owns every token, the Tailwind import and the
+   @source globs for the workspace packages. A relative path is used so it
+   resolves identically under Vite, tsc and the Docker build. */
+@import '../../../packages/tokens/src/theme.css';

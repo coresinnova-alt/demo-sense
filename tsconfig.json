@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "baseUrl": ".",
+    "types": ["vite/client", "node"],
+    "paths": {
+      "@sense/tokens": ["packages/tokens/src/index.ts"],
+      "@sense/core": ["packages/core/src/index.ts"],
+      "@sense/mock": ["packages/mock/src/index.ts"],
+      "@sense/ui": ["packages/ui/src/index.ts"],
+      "@sense/store": ["packages/store/src/index.ts"]
+    }
+  },
+  "include": ["apps/**/src", "packages/**/src", "apps/**/*.config.ts"]
+}

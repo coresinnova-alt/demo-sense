@@ -1,0 +1,23 @@
+{
+  "name": "sense-report-studio",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Sense Report Studio — AI-assisted Property Condition Assessment reporting (demo MVP)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace @sense/studio",
+    "build": "npm run build --workspace @sense/studio",
+    "preview": "npm run preview --workspace @sense/studio",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "clean": "rm -rf node_modules apps/*/node_modules packages/*/node_modules apps/*/dist **/*.tsbuildinfo"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

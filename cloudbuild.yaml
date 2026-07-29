@@ -1,0 +1,79 @@
+# Cloud Build pipeline: build the container, push it to Artifact Registry,
+# then roll it out to Cloud Run.
+#
+# Triggered on push to the default branch (see deploy/setup-gcp.sh), or run
+# by hand with:
+#   gcloud builds submit --config cloudbuild.yaml --project portal-503823
+
+substitutions:
+  _SERVICE: sense-report-studio
+  _REGION: us-central1
+  _REPO: apps
+  # Overridden per-trigger; the fallback keeps manual `builds submit` working
+  # (where $SHORT_SHA is empty because there is no connected commit).
+  _TAG: manual
+
+options:
+  machineType: E2_HIGHCPU_8
+  # A user-specified or default SA without a logs bucket must log to Cloud
+  # Logging only, otherwise the build fails before it starts.
+  logging: CLOUD_LOGGING_ONLY
+
+images:
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:${_TAG}'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:latest'
+
+steps:
+  # Pull the previous image so Docker can reuse unchanged layers — mainly the
+  # npm install layer, which dominates build time.
+  - id: pull-cache
+    name: gcr.io/cloud-builders/docker
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        docker pull '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:latest' || \
+          echo 'No cached image yet — first build.'
+
+  - id: build
+    name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --build-arg=BUILDKIT_INLINE_CACHE=1
+      - --cache-from=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:latest
+      - -t=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:${_TAG}
+      - -t=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:latest
+      - -f=Dockerfile
+      - .
+    env:
+      - DOCKER_BUILDKIT=1
+
+  - id: push
+    name: gcr.io/cloud-builders/docker
+    args: ['push', '--all-tags', '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}']
+
+  - id: deploy
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE}
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_SERVICE}:${_TAG}
+      - --region=${_REGION}
+      - --platform=managed
+      # Public demo. Drop this flag (and add an IAP/LB in front) to lock it down.
+      - --allow-unauthenticated
+      - --port=8080
+      - --cpu=1
+      - --memory=512Mi
+      - --min-instances=0
+      - --max-instances=4
+      # Static assets are cheap to serve; one instance handles plenty at once.
+      - --concurrency=200
+      - --timeout=60s
+      # No --revision-suffix: Cloud Run rejects a reused suffix, which would
+      # break a re-run of the same commit.
+      - --labels=app=sense-report-studio,managed-by=cloud-build
+
+timeout: 1200s
